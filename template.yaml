@@ -1,0 +1,271 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GLOA Identity - the shared GLOA Cognito user pool (one login for every GLOA staff app), its groups, post-login hook, and login.galaxref.com
+
+Parameters:
+  LoginDomainName:
+    Type: String
+    Default: login.galaxref.com
+  AcmCertificateArn:
+    Type: String
+    Description: ARN of the *.galaxref.com ACM certificate (must be in us-east-1)
+    AllowedPattern: ^arn:aws:acm:us-east-1:[0-9]{12}:certificate/.+$
+
+Resources:
+  # The shared GLOA user pool: every staff account (one email + password for every
+  # GLOA app). Created by the Observation App stack on 2026-03-27 and imported into
+  # this stack on 2026-10-06. Retain + DeletionProtection: it can never be deleted
+  # by a stack operation.
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DependsOn: [PostAuthFunctionPermission, PostAuthFunctionLogGroup]
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      # Original name from when the Observation App stack created it (2026-03-27).
+      # Kept so the import matches the live pool exactly.
+      UserPoolName: gloa-observation-app-UserPool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      # Shared by every GLOA staff app. Settings below are spelled out so a stack
+      # update never resets them to defaults (a CloudFormation update rewrites the
+      # whole pool configuration).
+      UserPoolTier: ESSENTIALS
+      DeletionProtection: ACTIVE
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+        InviteMessageTemplate:
+          EmailSubject: Your GLOA login is ready
+          EmailMessage: >-
+            <p>Hello,</p>
+            <p>Your login for the Georgia Lacrosse Officials Association (GLOA) web apps is ready.</p>
+            <p><strong>Username:</strong> {username}<br>
+            <strong>Temporary password:</strong> {####}</p>
+            <p>Sign in at <a href="https://apps.galaxref.com">https://apps.galaxref.com</a> to see the
+            apps available to you. The first time you sign in, you'll choose your own password (at
+            least 8 characters, with an uppercase letter, a lowercase letter and a number). The same
+            email and password work on every GLOA app.</p>
+            <p>This temporary password expires in 7 days. If it expires, email
+            <a href="mailto:webmaster@galaxref.com">webmaster@galaxref.com</a> for a new one.</p>
+            <p>Thank you,<br>Georgia Lacrosse Officials Association</p>
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your GLOA verification code
+        EmailMessage: >-
+          <p>Your GLOA verification code is <strong>{####}</strong>.</p>
+          <p>If you requested a password reset, enter this code on the reset screen. It expires in
+          1 hour.</p>
+          <p>If you didn't request this, you can ignore this email; your password hasn't changed.</p>
+      # Invites and verification/reset codes come from webmaster@ via SES instead of
+      # no-reply@verificationemail.com (identity verified with DKIM).
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        SourceArn: !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/webmaster@galaxref.com'
+        From: GLOA <webmaster@galaxref.com>
+      # Post-login hook (stamps custom:lastLogin). Constructed ARN rather than
+      # !GetAtt so the pool doesn't depend on the function's role (which refers to
+      # the pool); DependsOn above makes sure the function and its permission exist first.
+      LambdaConfig:
+        PostAuthentication: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-PostAuth'
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+          - Name: verified_phone_number
+            Priority: 2
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+        SignInPolicy:
+          AllowedFirstAuthFactors:
+            - PASSWORD
+      # custom:lastLogin (written by the post-login hook) was added to the live pool with
+      # AddCustomAttributes on 2026-10-06; it is deliberately not listed here.
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      UserPoolTags:
+        Application: GLOA-Identity
+
+  # ---- Post-login hook ----------------------------------------------------------
+  # Stamps custom:lastLogin after every successful sign-in (shown in User Admin).
+  # Never blocks a sign-in: failures are only logged.
+  PostAuthFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PostAuth
+      Description: Stamps custom:lastLogin on the GLOA user after each successful sign-in
+      Runtime: nodejs24.x
+      Handler: index.handler
+      Timeout: 5
+      MemorySize: 128
+      Role: !GetAtt PostAuthFunctionRole.Arn
+      Code:
+        ZipFile: |
+          const { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } = require('@aws-sdk/client-cognito-identity-provider');
+          const cognito = new CognitoIdentityProviderClient({});
+          exports.handler = async (event) => {
+            try {
+              await cognito.send(new AdminUpdateUserAttributesCommand({
+                UserPoolId: event.userPoolId,
+                Username: event.userName,
+                UserAttributes: [{ Name: 'custom:lastLogin', Value: new Date().toISOString() }]
+              }));
+            } catch (err) {
+              // Never block sign-in; just log.
+              console.error('postAuth: failed to stamp lastLogin', err);
+            }
+            return event;
+          };
+
+  # The pool ID is written out (not !Ref UserPool) to avoid a circular dependency:
+  # the pool depends on this function existing. It's fixed for the life of the pool.
+  PostAuthFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: StampLastLogin
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: cognito-idp:AdminUpdateUserAttributes
+                Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/us-east-1_oXFiLITO7'
+
+  PostAuthFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PostAuthFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/us-east-1_oXFiLITO7'
+
+  PostAuthFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-PostAuth
+      RetentionInDays: 90
+
+  # ---- App groups ---------------------------------------------------------------
+  # Naming scheme (GLOA App Refinement Plan, Part 2): <app>-admins / <app>-users;
+  # the gloa- prefix is reserved for GLOA-wide groups. Must match the app list in
+  # GLOA-Apps-Portal/backend/apps.js. Retained if this stack is ever deleted so
+  # memberships survive. gloa-user-admins lives in the GLOA-Apps-Portal stack.
+  ObservationAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: observation-admins
+      UserPoolId: !Ref UserPool
+      Description: Observation App - administer (officials, observers, scheduling) and use the app
+
+  ObservationUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: observation-users
+      UserPoolId: !Ref UserPool
+      Description: Observation App - observers (submit and view observations and statistics)
+
+  RegistrationAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: registration-admins
+      UserPoolId: !Ref UserPool
+      Description: Coaches Registration - manage the school list, view registrations, CSV exports
+
+  RegistrationUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: registration-users
+      UserPoolId: !Ref UserPool
+      Description: Coaches Registration - view registrations and CSV exports
+
+  ValidationAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: validation-admins
+      UserPoolId: !Ref UserPool
+      Description: Officials Validation - run the app (settings, seasons, questions)
+
+  ValidationUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: validation-users
+      UserPoolId: !Ref UserPool
+      Description: Officials Validation - GLOA leadership (view all officials' answers, reports, follow-up)
+
+  PlayoffsAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: playoffs-admins
+      UserPoolId: !Ref UserPool
+      Description: Playoff Eligibility - everything, including overrides and data sync
+
+  PlayoffsUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: playoffs-users
+      UserPoolId: !Ref UserPool
+      Description: Playoff Eligibility - read-only, reports
+
+  # ---- login.galaxref.com ------------------------------------------------------------
+  # Cognito managed login (the shared sign-in page for single sign-on, Plan Phase 2).
+  # Cognito hosts it on its own CloudFront distribution; Cloudflare needs a DNS-only
+  # CNAME from login to the LoginDomainCloudFront output.
+  LoginDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Ref LoginDomainName
+      CustomDomainConfig:
+        CertificateArn: !Ref AcmCertificateArn
+      ManagedLoginVersion: 2
+
+Outputs:
+  UserPoolId:
+    Description: The shared GLOA user pool
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+  UserPoolArn:
+    Value: !GetAtt UserPool.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolArn
+  LoginDomain:
+    Value: !Ref LoginDomainName
+    Export:
+      Name: !Sub ${AWS::StackName}-LoginDomain
+  LoginDomainCloudFront:
+    Description: Cloudflare CNAME target for login.galaxref.com (DNS-only)
+    Value: !GetAtt LoginDomain.CloudFrontDistribution
