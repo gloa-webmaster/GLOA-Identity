@@ -63,12 +63,12 @@ as each app switches to the new names (Plan Phase 1).
 Each app has its own app client in the pool and refers to the pool by a `UserPoolId` template
 parameter (default `us-east-1_oXFiLITO7`).
 
-| App | Stack | App client |
-|---|---|---|
-| Observation App | `gloa-observation-app` | `gloa-observation-app-WebClient` |
-| Coaches Registration (admin) | `gloa-coaches-registration` | `gloa-coaches-registration-AdminWebClient` |
-| Officials Validation (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` |
-| Apps Portal + User Admin | `gloa-apps-portal` | `gloa-apps-portal-WebClient` |
+| App | Stack | App client | Signs in via |
+|---|---|---|---|
+| Apps Portal + User Admin | `gloa-apps-portal` | `gloa-apps-portal-WebClient` | login.galaxref.com |
+| Coaches Registration (admin) | `gloa-coaches-registration` | `gloa-coaches-registration-AdminWebClient` | login.galaxref.com |
+| Officials Validation (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | its own form (to convert) |
+| Observation App | `gloa-observation-app` | `gloa-observation-app-WebClient` | its own form (to convert) |
 
 Playoff Eligibility still uses its own pool (`gloa-playoff-eligibility`) until Plan Phase 1 moves it
 here.
@@ -137,6 +137,7 @@ Never anything that replaces or removes `UserPool`.
   4. Added the post-login hook (replacing the Observation App's), the 8 app groups and
      login.galaxref.com.
 - **2026-10-06:** Apps Portal signs in through login.galaxref.com; GLOA branding applied.
+- **2026-10-06:** Coaches Registration admin signs in through login.galaxref.com.
 - The pool keeps its original name: renaming isn't needed for anything and isn't worth the risk.
 
 ## Still to do
