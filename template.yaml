@@ -229,15 +229,57 @@ Resources:
       GroupName: playoffs-admins
       UserPoolId: !Ref UserPool
       Description: Playoff Eligibility - everything, including overrides and data sync
+  # Playoff Eligibility has one role (assigners only, decided 2026-10-09); its
+  # playoffs-users group was removed.
 
-  PlayoffsUsersGroup:
+  # Incident Reports has a third role: the reporting team (secretary) who submit
+  # reports to GHSA. Admins and reporting can do the same things for now.
+  IncidentsAdminsGroup:
     Type: AWS::Cognito::UserPoolGroup
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      GroupName: playoffs-users
+      GroupName: incidents-admins
       UserPoolId: !Ref UserPool
-      Description: Playoff Eligibility - read-only, reports
+      Description: Incident Reports - everything (view, GHSA submitted, resolved)
+
+  IncidentsReportingGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: incidents-reporting
+      UserPoolId: !Ref UserPool
+      Description: Incident Reports - reporting team (view, mark submitted to GHSA, resolve GLOA-only reports)
+
+  IncidentsUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: incidents-users
+      UserPoolId: !Ref UserPool
+      Description: Incident Reports - view only
+
+  # Video Reviews has reviewers instead of users: they see every request but can
+  # only mark the ones assigned to them. Admins also get the new-request emails.
+  VideoReviewAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: videoreview-admins
+      UserPoolId: !Ref UserPool
+      Description: Video Reviews - everything (assign reviewers, close without review); gets the new-request emails
+
+  VideoReviewReviewersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: videoreview-reviewers
+      UserPoolId: !Ref UserPool
+      Description: Video Reviews - observers/trainers (see all requests; mark review completed / responded on their own)
 
   # ---- login.galaxref.com ------------------------------------------------------------
   # Cognito managed login (the shared sign-in page for single sign-on, Plan Phase 2).

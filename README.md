@@ -52,11 +52,11 @@ must match the app list in `GLOA-Apps-Portal/backend/apps.js` (cards and the Use
 | Observation | `observation-admins`: officials, observers, scheduling | `observation-users`: observers |
 | Coaches Registration | `registration-admins`: school list, registrations, CSV | `registration-users`: view + CSV |
 | Officials Validation | `validation-admins`: run the app | `validation-users`: leadership (view, reports, follow-up) |
-| Playoff Eligibility | `playoffs-admins`: everything incl. overrides, sync | `playoffs-users`: read-only |
+| Playoff Eligibility | `playoffs-admins`: everything (assigners only; the app has one role) | none |
 
 The older groups (`Administrators`, `Observers`, `CoachesRegistrationAdministrators`,
-`CoachesRegistrationUsers`, `OfficialsValidationAdmins`) belong to the app stacks and are retired
-as each app switches to the new names (Plan Phase 1).
+`CoachesRegistrationUsers`, `OfficialsValidationAdmins`) were retired 2026-10-09: everyone was
+moved to the groups above, and the app stacks that created them deleted them.
 
 ## Apps using the pool
 
@@ -67,11 +67,12 @@ parameter (default `us-east-1_oXFiLITO7`).
 |---|---|---|---|
 | Apps Portal + User Admin | `gloa-apps-portal` | `gloa-apps-portal-WebClient` | login.galaxref.com |
 | Coaches Registration (admin) | `gloa-coaches-registration` | `gloa-coaches-registration-AdminWebClient` | login.galaxref.com |
-| Officials Validation (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | its own form (to convert) |
-| Observation App | `gloa-observation-app` | `gloa-observation-app-WebClient` | its own form (to convert) |
+| Officials Validation (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | login.galaxref.com |
+| Playoff Eligibility (apps.galaxref.com/playoffs/) | CDK `GloaApiStack` | shared portal client | login.galaxref.com, shared session |
+| Observation App (apps.galaxref.com/observations/) | `gloa-observation-app` | shared portal client (its own client removed 2026-10-09) | login.galaxref.com, shared session |
 
-Playoff Eligibility still uses its own pool (`gloa-playoff-eligibility`) until Plan Phase 1 moves it
-here.
+Playoff Eligibility moved here on 2026-10-09; its old pool (`gloa-playoff-eligibility`) is deleted
+after a week of normal use.
 
 ## DNS (Cloudflare)
 
@@ -138,6 +139,9 @@ Never anything that replaces or removes `UserPool`.
      login.galaxref.com.
 - **2026-10-06:** Apps Portal signs in through login.galaxref.com; GLOA branding applied.
 - **2026-10-06:** Coaches Registration admin signs in through login.galaxref.com.
+- **2026-10-07:** Observation App moved to apps.galaxref.com/observations/, sharing the portal's sign-in.
+- **2026-10-09:** Older groups retired; Officials Validation admin signs in through login.galaxref.com;
+  Playoff Eligibility moved to apps.galaxref.com/playoffs/ on this pool (`playoffs-admins` only).
 - The pool keeps its original name: renaming isn't needed for anything and isn't worth the risk.
 
 ## Still to do
