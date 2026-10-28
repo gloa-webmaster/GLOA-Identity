@@ -51,7 +51,7 @@ must match the app list in `GLOA-Apps-Portal/backend/apps.js` (cards and the Use
 |---|---|---|
 | Observation | `observation-admins`: officials, observers, scheduling | `observation-users`: observers |
 | Coaches Registration | `registration-admins`: school list, registrations, CSV | `registration-users`: view + CSV |
-| Officials Validation | `validation-admins`: run the app | `validation-users`: leadership (view, reports, follow-up) |
+| Officials Registration (formerly Officials Validation) | `validation-admins`: run the app | `validation-users`: leadership (view, reports, follow-up) |
 | Playoff Eligibility | `playoffs-admins`: everything (assigners only; the app has one role) | none |
 
 The older groups (`Administrators`, `Observers`, `CoachesRegistrationAdministrators`,
@@ -67,7 +67,7 @@ parameter (default `us-east-1_oXFiLITO7`).
 |---|---|---|---|
 | Apps Portal + User Admin | `gloa-apps-portal` | `gloa-apps-portal-WebClient` | login.galaxref.com |
 | Coaches Registration (admin) | `gloa-coaches-registration` | `gloa-coaches-registration-AdminWebClient` | login.galaxref.com |
-| Officials Validation (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | login.galaxref.com |
+| Officials Registration (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | login.galaxref.com |
 | Playoff Eligibility (apps.galaxref.com/playoffs/) | CDK `GloaApiStack` | shared portal client | login.galaxref.com, shared session |
 | Observation App (apps.galaxref.com/observations/) | `gloa-observation-app` | shared portal client (its own client removed 2026-10-09) | login.galaxref.com, shared session |
 

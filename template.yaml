@@ -210,7 +210,7 @@ Resources:
     Properties:
       GroupName: validation-admins
       UserPoolId: !Ref UserPool
-      Description: Officials Validation - run the app (settings, seasons, questions)
+      Description: Officials Registration - run the app (registrations, training sessions, settings)
 
   ValidationUsersGroup:
     Type: AWS::Cognito::UserPoolGroup
@@ -219,7 +219,7 @@ Resources:
     Properties:
       GroupName: validation-users
       UserPoolId: !Ref UserPool
-      Description: Officials Validation - GLOA leadership (view all officials' answers, reports, follow-up)
+      Description: Officials Registration - GLOA leadership (view all registrations, reports, follow-up)
 
   PlayoffsAdminsGroup:
     Type: AWS::Cognito::UserPoolGroup
@@ -280,6 +280,24 @@ Resources:
       GroupName: videoreview-reviewers
       UserPoolId: !Ref UserPool
       Description: Video Reviews - observers/trainers (see all requests; mark review completed / responded on their own)
+
+  OfficialsRequestsAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: officialsrequests-admins
+      UserPoolId: !Ref UserPool
+      Description: Officials Requests - assignors (see all requests for officials; set status and notes)
+
+  OfficialsRequestsUsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: officialsrequests-users
+      UserPoolId: !Ref UserPool
+      Description: Officials Requests - view only (see all requests for officials)
 
   # ---- login.galaxref.com ------------------------------------------------------------
   # Cognito managed login (the shared sign-in page for single sign-on, Plan Phase 2).
