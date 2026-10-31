@@ -299,6 +299,26 @@ Resources:
       UserPoolId: !Ref UserPool
       Description: Officials Requests - view only (see all requests for officials)
 
+  # Rules Test (practice tool) has reviewers instead of users: they manage the
+  # question bank and see anonymous statistics, never testers' names or results.
+  RulesTestAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: rulestest-admins
+      UserPoolId: !Ref UserPool
+      Description: Rules Test - everything (results by person, overview, settings and class codes) plus question reviewing
+
+  RulesTestReviewersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: rulestest-reviewers
+      UserPoolId: !Ref UserPool
+      Description: Rules Test - Question Reviewers (write, approve and retire questions; flags; anonymous statistics)
+
   # ---- login.galaxref.com ------------------------------------------------------------
   # Cognito managed login (the shared sign-in page for single sign-on, Plan Phase 2).
   # Cognito hosts it on its own CloudFront distribution; Cloudflare needs a DNS-only
