@@ -66,8 +66,8 @@ parameter (default `us-east-1_oXFiLITO7`).
 | App | Stack | App client | Signs in via |
 |---|---|---|---|
 | Apps Portal + User Admin | `gloa-apps-portal` | `gloa-apps-portal-WebClient` | login.galaxref.com |
-| Coaches Registration (admin) | `gloa-coaches-registration` | `gloa-coaches-registration-AdminWebClient` | login.galaxref.com |
-| Officials Registration (admin) | `gloa-officials-validation` | `gloa-officials-validation-AdminWebClient` | login.galaxref.com |
+| Coaches Registration (apps.galaxref.com/coaches-registration/) | `gloa-coaches-registration` | shared portal client (its own client removed 2026-11-03) | login.galaxref.com, shared session |
+| Officials Registration (apps.galaxref.com/officials-registration/) | `gloa-officials-validation` | shared portal client (its own client removed 2026-11-03) | login.galaxref.com, shared session |
 | Playoff Eligibility (apps.galaxref.com/playoffs/) | CDK `GloaApiStack` | shared portal client | login.galaxref.com, shared session |
 | Observation App (apps.galaxref.com/observations/) | `gloa-observation-app` | shared portal client (its own client removed 2026-10-09) | login.galaxref.com, shared session |
 
@@ -144,10 +144,6 @@ Never anything that replaces or removes `UserPool`.
   Playoff Eligibility moved to apps.galaxref.com/playoffs/ on this pool (`playoffs-admins` only).
 - The pool keeps its original name: renaming isn't needed for anything and isn't worth the risk.
 
-## Still to do
+## Open items
 
-- Each remaining app signs in through login.galaxref.com (single sign-on, Plan Phase 2). The
-  Apps Portal was first (2026-10-06): OAuth code + PKCE, then `apply_branding.py`.
-- Remove the Observation App's old, now-unused post-login function.
-- Move `gloa-user-admins` here? (Currently in the portal stack; either works.)
-- Officials join with emailed-code sign-in (Plan Phase 3).
+Tracked in [gloa-work Issues](https://github.com/galaxref/gloa-work/issues).
