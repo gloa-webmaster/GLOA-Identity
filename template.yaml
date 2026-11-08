@@ -319,6 +319,35 @@ Resources:
       UserPoolId: !Ref UserPool
       Description: Rules Test - Question Reviewers (write, approve and retire questions; flags; anonymous statistics)
 
+  # Communications (Message Officials + Newsletter). Two sending roles instead of users;
+  # someone who does both gets both groups.
+  CommsAdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: comms-admins
+      UserPoolId: !Ref UserPool
+      Description: Communications - everything (message officials, newsletters, test mode and test list, sent log, bounces)
+
+  CommsNewsletterGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: comms-newsletter
+      UserPoolId: !Ref UserPool
+      Description: Communications - Newsletter Manager (build and send newsletters)
+
+  CommsLeadersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      GroupName: comms-leaders
+      UserPoolId: !Ref UserPool
+      Description: Communications - Leader Communication (email GLOA officials by audience)
+
   # ---- login.galaxref.com ------------------------------------------------------------
   # Cognito managed login (the shared sign-in page for single sign-on, Plan Phase 2).
   # Cognito hosts it on its own CloudFront distribution; Cloudflare needs a DNS-only
